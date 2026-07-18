@@ -1,5 +1,5 @@
 {
-  "name": "matchtune-backend",
+  "name": "match-resonance-backend",
   "version": "0.1.0",
   "description": "MVP бэкенд для дейтинг-приложения на основе музыкальной совместимости",
   "main": "src/server.js",
