@@ -14,16 +14,22 @@ export function getPool() {
       );
     }
 
-    // Многие управляемые БД (включая Timeweb Cloud) используют сертификат
+    // Локальный Postgres (для разработки) обычно вообще без TLS — SSL не включаем.
+    // Любой внешний хост (Timeweb и почти все управляемые БД) — включаем TLS, но
+    // не проверяем цепочку сертификата: у таких провайдеров сертификат обычно
     // от внутреннего центра сертификации, которому Node.js не доверяет по
-    // умолчанию. Соединение всё равно шифруется (sslmode=require) — мы просто
-    // не проверяем цепочку сертификата, как и делает большинство приложений
-    // при подключении к таким провайдерам.
-    const needsSsl = /sslmode=(require|verify-ca|verify-full)/.test(connectionString);
+    // умолчанию, хотя само соединение всё равно шифруется.
+    let isLocalHost = false;
+    try {
+      const { hostname } = new URL(connectionString);
+      isLocalHost = hostname === "localhost" || hostname === "127.0.0.1";
+    } catch {
+      // если URL не распарсился — считаем, что это не локальный хост
+    }
 
     pool = new Pool({
       connectionString,
-      ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+      ssl: isLocalHost ? undefined : { rejectUnauthorized: false },
     });
   }
   return pool;
