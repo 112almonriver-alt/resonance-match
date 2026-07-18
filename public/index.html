@@ -201,6 +201,7 @@ let state = {
   tracks: [],
   selectedIds: new Set(),
   profileSaved: false,
+  playlistInputMode: "link", // 'link' | 'manual'
 
   candidates: [],
   candidatesLoaded: false,
@@ -377,6 +378,25 @@ async function saveProfile() {
   }
 }
 
+async function handleManualSubmit(e) {
+  e.preventDefault();
+  const text = document.getElementById("manual-tracks-text").value.trim();
+  if (!text) return;
+
+  setState({ loading: true, error: null });
+  try {
+    const data = await api("/profile/manual", { method: "POST", body: JSON.stringify({ tracksText: text }) });
+    setState({
+      tracks: data.tracks,
+      selectedIds: new Set(data.tracks.map((t) => t.id)),
+      loading: false,
+      profileSaved: false,
+    });
+  } catch (err) {
+    setState({ error: err.message, loading: false });
+  }
+}
+
 function renderPlaylistScreen() {
   const weights = getUserWeights();
   return `
@@ -386,13 +406,33 @@ function renderPlaylistScreen() {
         <p>Вставь ссылку на публичный плейлист Яндекс Музыки</p>
       </div>
       ${state.error ? `<div class="error">${escapeHtml(state.error)}</div>` : ""}
-      <form class="url-form" id="playlist-form">
-        <input id="playlist-url" type="text"  placeholder="music.yandex.ru/users/.../playlists/..." autocomplete="off" />
-        <button class="btn-primary" style="width:auto;padding:11px 18px" type="submit" ${state.loading ? "disabled" : ""}>
-          ${state.loading ? '<span class="spinner"></span>' : "Загрузить"}
-        </button>
-      </form>
-      <p class="hint">Нужен запущенный бэкенд (см. README). Поддерживаются также ссылки на плейлисты Spotify.</p>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="toggle-all" id="mode-link-btn" style="${state.playlistInputMode === "link" ? "background:var(--surface);color:var(--teal)" : ""}">Ссылка на плейлист</button>
+        <button class="toggle-all" id="mode-manual-btn" style="${state.playlistInputMode === "manual" ? "background:var(--surface);color:var(--teal)" : ""}">Вставить список</button>
+      </div>
+
+      ${state.playlistInputMode === "link" ? `
+        <form class="url-form" id="playlist-form">
+          <input id="playlist-url" type="text" placeholder="music.yandex.ru/users/.../playlists/..." autocomplete="off" />
+          <button class="btn-primary" style="width:auto;padding:11px 18px" type="submit" ${state.loading ? "disabled" : ""}>
+            ${state.loading ? '<span class="spinner"></span>' : "Загрузить"}
+          </button>
+        </form>
+        <p class="hint">Поддерживаются ссылки на плейлисты Spotify. Для Яндекс Музыки надёжнее работает вставка списка — переключитесь на вкладку выше.</p>
+      ` : `
+        <form id="manual-form">
+          <textarea id="manual-tracks-text" rows="6" placeholder="Например:
+Дельфин - Весна
+Земфира - Хочешь
+Порнофильмы - Пуля-дура"
+            style="width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;color:var(--text);font-size:14px;outline:none;resize:vertical;font-family:inherit"></textarea>
+          <button class="btn-primary" style="margin-top:10px" type="submit" ${state.loading ? "disabled" : ""}>
+            ${state.loading ? '<span class="spinner"></span>' : "Разобрать список"}
+          </button>
+        </form>
+        <p class="hint">По одному треку на строке, формат «Артист - Название». Можно просто скопировать список любимых треков откуда угодно.</p>
+      `}
 
       ${state.tracks.length > 0 ? `
         <div class="section-label">
@@ -417,7 +457,16 @@ function renderPlaylistScreen() {
 }
 
 function bindPlaylistEvents() {
-  document.getElementById("playlist-form").addEventListener("submit", handlePlaylistSubmit);
+  const linkBtn = document.getElementById("mode-link-btn");
+  const manualBtn = document.getElementById("mode-manual-btn");
+  if (linkBtn) linkBtn.addEventListener("click", () => setState({ playlistInputMode: "link", error: null }));
+  if (manualBtn) manualBtn.addEventListener("click", () => setState({ playlistInputMode: "manual", error: null }));
+
+  const playlistForm = document.getElementById("playlist-form");
+  if (playlistForm) playlistForm.addEventListener("submit", handlePlaylistSubmit);
+  const manualForm = document.getElementById("manual-form");
+  if (manualForm) manualForm.addEventListener("submit", handleManualSubmit);
+
   const toggleAllBtn = document.getElementById("toggle-all-btn");
   if (toggleAllBtn) toggleAllBtn.addEventListener("click", toggleAllTracks);
   document.querySelectorAll(".track-row").forEach((row) => {
