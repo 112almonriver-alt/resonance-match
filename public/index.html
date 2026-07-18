@@ -383,16 +383,16 @@ function renderPlaylistScreen() {
     <div class="page">
       <div class="hero" style="margin-top:0">
         <h1 class="display" style="font-size:26px">Твой звуковой профиль</h1>
-        <p>Вставь ссылку на публичный плейлист Spotify</p>
+        <p>Вставь ссылку на публичный плейлист Яндекс Музыки</p>
       </div>
       ${state.error ? `<div class="error">${escapeHtml(state.error)}</div>` : ""}
       <form class="url-form" id="playlist-form">
-        <input id="playlist-url" type="text" placeholder="open.spotify.com/playlist/..." autocomplete="off" />
+        <input id="playlist-url" type="text"  placeholder="music.yandex.ru/users/.../playlists/..." autocomplete="off" />
         <button class="btn-primary" style="width:auto;padding:11px 18px" type="submit" ${state.loading ? "disabled" : ""}>
           ${state.loading ? '<span class="spinner"></span>' : "Загрузить"}
         </button>
       </form>
-      <p class="hint">Нужен запущенный бэкенд с ключами Spotify (см. README).</p>
+      <p class="hint">Нужен запущенный бэкенд (см. README). Поддерживаются также ссылки на плейлисты Spotify.</p>
 
       ${state.tracks.length > 0 ? `
         <div class="section-label">
