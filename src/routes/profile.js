@@ -2,17 +2,11 @@ import { Router } from "express";
 import { getCachedTracks, saveTracksToCache } from "../db/playlistCache.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { saveMusicProfile } from "../db/users.js";
+import { enrichTracksWithGenres } from "../enrichment/lastfm.js";
 
 export function createProfileRouter(adapterRegistry) {
   const router = Router();
 
-  /**
-   * POST /api/profile
-   * body: { playlistUrl: string }
-   * Возвращает музыкальный профиль, построенный по ссылке на плейлист.
-   * Если БД настроена (DATABASE_URL) — сначала проверяет кэш, чтобы не дёргать
-   * Spotify повторно; иначе всегда ходит к провайдеру напрямую.
-   */
   router.post("/profile", async (req, res) => {
     const { playlistUrl } = req.body;
 
@@ -27,6 +21,12 @@ export function createProfileRouter(adapterRegistry) {
 
       if (!tracks) {
         tracks = await adapter.getTracksByPlaylistUrl(playlistUrl);
+
+        const needsEnrichment = tracks.some((t) => !t.genres || t.genres.length === 0);
+        if (needsEnrichment && process.env.LASTFM_API_KEY) {
+          tracks = await enrichTracksWithGenres(tracks, process.env.LASTFM_API_KEY);
+        }
+
         await trySaveToCache(adapter.providerName, playlistUrl, tracks);
       }
 
@@ -46,12 +46,6 @@ export function createProfileRouter(adapterRegistry) {
     }
   });
 
-  /**
-   * POST /api/profile/save (требует авторизации)
-   * body: { genreWeights: {...}, artistWeights: {...} }
-   * Сохраняет музыкальный профиль, посчитанный на фронтенде из выбранных
-   * пользователем треков — именно этот профиль участвует в подборе кандидатов.
-   */
   router.post("/profile/save", requireAuth, async (req, res) => {
     const { genreWeights, artistWeights } = req.body;
 
@@ -70,7 +64,6 @@ export function createProfileRouter(adapterRegistry) {
   return router;
 }
 
-/** Читает кэш, если БД настроена; при любой проблеме с БД тихо возвращает null — не роняем запрос */
 async function tryGetFromCache(provider, playlistUrl) {
   if (!process.env.DATABASE_URL) return null;
   try {
@@ -81,7 +74,6 @@ async function tryGetFromCache(provider, playlistUrl) {
   }
 }
 
-/** Пишет в кэш, если БД настроена; ошибка записи не должна ломать ответ пользователю */
 async function trySaveToCache(provider, playlistUrl, tracks) {
   if (!process.env.DATABASE_URL) return;
   try {
