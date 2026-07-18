@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MatchTune</title>
+<title>Match Resonance</title>
 <style>
   :root {
     --bg: #120f1a;
@@ -190,7 +190,7 @@
 <script>
 const API = "/api";
 let state = {
-  token: localStorage.getItem("matchtune_token") || null,
+  token: localStorage.getItem("match_resonance_token") || null,
   user: null,
   authMode: "login",     // 'login' | 'register'
   authForm: { email: "", password: "", name: "", age: "" },
@@ -242,7 +242,7 @@ async function api(path, opts = {}) {
 }
 
 function logout() {
-  localStorage.removeItem("matchtune_token");
+  localStorage.removeItem("match_resonance_token");
   clearInterval(state.pollTimer);
   state = { ...state, token: null, user: null, screen: "playlist", tracks: [], selectedIds: new Set(), candidates: [], matches: [], activeMatch: null, messages: [] };
   render();
@@ -276,7 +276,7 @@ async function handleAuthSubmit(e) {
       : { email, password, name, age: age ? Number(age) : undefined };
 
     const data = await api(path, { method: "POST", body: JSON.stringify(body) });
-    localStorage.setItem("matchtune_token", data.token);
+    localStorage.setItem("match_resonance_token", data.token);
     setState({ token: data.token, user: data.user, loading: false, screen: "playlist" });
   } catch (err) {
     setState({ error: err.message, loading: false });
@@ -289,7 +289,7 @@ function renderAuth() {
     <div class="page">
       <div class="hero">
         <div class="badge">✦ демо матчинга по звуку</div>
-        <h1 class="display">Match<span>Tune</span></h1>
+        <h1 class="display">Match <span>Resonance</span></h1>
         <p>${state.authMode === "login" ? "Войдите, чтобы увидеть свои совпадения" : "Создайте профиль за 30 секунд"}</p>
       </div>
       ${state.error ? `<div class="error">${escapeHtml(state.error)}</div>` : ""}
