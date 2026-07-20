@@ -1,0 +1,156 @@
+// Схема базы данных Resonance
+// После изменений: npx prisma migrate dev --name <название_миграции>
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Intent {
+  FRIEND
+  EVENT_COMPANY
+  BROWSING
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  birthDate    DateTime
+  city         String
+  bio          String?
+  photoUrl     String?
+  intent       Intent   @default(BROWSING)
+  createdAt    DateTime @default(now())
+
+  musicProfile   MusicProfile?
+  sentLikes      Like[]          @relation("LikesSent")
+  receivedLikes  Like[]          @relation("LikesReceived")
+  messagesSent   Message[]       @relation("MessagesSent")
+  eventInterests EventInterest[]
+
+  matchesA Match[] @relation("MatchUserA")
+  matchesB Match[] @relation("MatchUserB")
+}
+
+model MusicProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // энергия, направление (андеграунд-мейнстрим), эпоха — значения 0-100
+  energy      Int @default(50)
+  mainstream  Int @default(50)
+  era         Int @default(50)
+
+  genres  ProfileGenre[]
+  artists ProfileArtist[]
+}
+
+model Genre {
+  id      String          @id @default(uuid())
+  name    String          @unique
+  profiles ProfileGenre[]
+}
+
+// ранжированный жанр в профиле пользователя (rank: 1 = самый важный)
+model ProfileGenre {
+  id             String       @id @default(uuid())
+  musicProfileId String
+  musicProfile   MusicProfile @relation(fields: [musicProfileId], references: [id], onDelete: Cascade)
+  genreId        String
+  genre          Genre        @relation(fields: [genreId], references: [id])
+  rank           Int
+
+  @@unique([musicProfileId, genreId])
+}
+
+model Artist {
+  id       String          @id @default(uuid())
+  name     String          @unique
+  profiles ProfileArtist[]
+}
+
+model ProfileArtist {
+  id             String       @id @default(uuid())
+  musicProfileId String
+  musicProfile   MusicProfile @relation(fields: [musicProfileId], references: [id], onDelete: Cascade)
+  artistId       String
+  artist         Artist       @relation(fields: [artistId], references: [id])
+
+  @@unique([musicProfileId, artistId])
+}
+
+enum LikeStatus {
+  LIKE
+  PASS
+}
+
+model Like {
+  id         String     @id @default(uuid())
+  fromUserId String
+  fromUser   User       @relation("LikesSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  toUser     User       @relation("LikesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+  status     LikeStatus
+  createdAt  DateTime   @default(now())
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Match {
+  id        String    @id @default(uuid())
+  userAId   String
+  userA     User      @relation("MatchUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userBId   String
+  userB     User      @relation("MatchUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  score     Int
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@unique([userAId, userBId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id          String          @id @default(uuid())
+  title       String
+  description String?
+  city        String
+  venue       String?
+  startsAt    DateTime
+  externalUrl String?
+  imageUrl    String?
+  interests   EventInterest[]
+}
+
+enum InterestStatus {
+  GOING
+  INTERESTED
+}
+
+model EventInterest {
+  id        String          @id @default(uuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status    InterestStatus
+  createdAt DateTime        @default(now())
+
+  @@unique([userId, eventId])
+}

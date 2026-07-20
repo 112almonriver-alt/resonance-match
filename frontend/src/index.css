@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: #0F0F12;
+}
+
+@layer components {
+  .input {
+    @apply bg-panel border border-white/10 rounded-lg px-4 py-3 text-text placeholder:text-text-muted outline-none focus:border-accent transition-colors;
+  }
+  .btn-primary {
+    @apply bg-accent text-bg font-display font-semibold rounded-lg py-3 text-center transition-opacity hover:opacity-90 disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply border border-white/15 text-text rounded-lg py-3 text-center transition-colors hover:border-white/30;
+  }
+  .chip {
+    @apply inline-flex items-center px-3 py-1.5 rounded-full border border-white/15 text-sm cursor-pointer select-none transition-colors;
+  }
+  .chip-on {
+    @apply bg-accent text-bg border-accent;
+  }
+}
